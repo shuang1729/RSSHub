@@ -1,4 +1,4 @@
-import { getNamespaces } from '../../lib/registry';
+import { namespacesPromise } from '../../lib/registry';
 import { RadarItem } from '../../lib/types';
 import { parse } from 'tldts';
 import fs from 'node:fs';
@@ -9,7 +9,7 @@ import { getCurrentPath } from '../../lib/utils/helpers';
 const __dirname = getCurrentPath(import.meta.url);
 
 const generateFiles = async () => {
-    const namespaces = await getNamespaces();
+    const namespaces = await namespacesPromise;
     const maintainers: Record<string, string[]> = {};
     const radar: {
         [domain: string]: {
