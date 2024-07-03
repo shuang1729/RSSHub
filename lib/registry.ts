@@ -1,114 +1,82 @@
-import type { Namespace, Route } from '../types';
-import { directoryImport } from 'directory-import';
-import { Hono, type Handler } from 'hono';
+import { namespacesPromise } from './routes';
+import { RadarItem } from './types';
+import { parse } from 'tldts';
+import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { serveStatic } from '@hono/node-server/serve-static';
+import toSource from 'tosource';
 
-import index from '../routes/index';
-import robotstxt from '../routes/robots.txt';
+import { getCurrentPath } from './utils/helpers';
+const __dirname = getCurrentPath(import.meta.url);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const generateFiles = async () => {
+    const namespaces = await namespacesPromise;
+    const maintainers: Record<string, string[]> = {};
+    const radar: {
+        [domain: string]: {
+            _name: string;
+            [subdomain: string]: RadarItem[] | string;
+        };
+    } = {};
 
-let modules: Record<string, { route: Route } | { namespace: Namespace }> = {};
-let namespaces: Record<
-    string,
-    Namespace & {
-        routes: Record<
-            string,
-            Route & {
-                location: string;
-            }
-        >;
-    }
-> = {};
-
-const namespacesPromise = (async () => {
-    switch (process.env.NODE_ENV) {
-        case 'test':
-        case 'production':
-            // @ts-expect-error
-            namespaces = await import('../../assets/build/routes.json');
-            break;
-        default:
-            modules = directoryImport({
-                targetDirectoryPath: path.join(__dirname, '../routes'),
-                importPattern: /\.ts$/,
-            }) as typeof modules;
-    }
-
-    if (Object.keys(modules).length) {
-        for (const module in modules) {
-            const content = modules[module] as
-                | {
-                      route: Route;
-                  }
-                | {
-                      namespace: Namespace;
-                  };
-            const namespace = module.split(/[/\\]/)[1];
-            if ('namespace' in content) {
-                namespaces[namespace] = Object.assign(
-                    {
-                        routes: {},
-                    },
-                    namespaces[namespace],
-                    content.namespace
-                );
-            } else if ('route' in content) {
-                if (!namespaces[namespace]) {
-                    namespaces[namespace] = {
-                        name: namespace,
-                        routes: {},
-                    };
+    for (const namespace in namespaces) {
+        let defaultCategory = namespaces[namespace].categories?.[0];
+        if (!defaultCategory) {
+            for (const path in namespaces[namespace].routes) {
+                if (namespaces[namespace].routes[path].categories) {
+                    defaultCategory = namespaces[namespace].routes[path].categories[0];
+                    break;
                 }
-                if (Array.isArray(content.route.path)) {
-                    for (const path of content.route.path) {
-                        namespaces[namespace].routes[path] = {
-                            ...content.route,
-                            location: module.split(/[/\\]/).slice(2).join('/'),
-                        };
+            }
+        }
+        if (!defaultCategory) {
+            defaultCategory = 'other';
+        }
+        for (const path in namespaces[namespace].routes) {
+            const realPath = `/${namespace}${path}`;
+            const data = namespaces[namespace].routes[path];
+            const categories = data.categories || namespaces[namespace].categories || [defaultCategory];
+            // maintainers
+            if (data.maintainers) {
+                maintainers[realPath] = data.maintainers;
+            }
+            // radar
+            if (data.radar?.length) {
+                for (const radarItem of data.radar) {
+                    const parsedDomain = parse(new URL('https://' + radarItem.source[0]).hostname);
+                    const subdomain = parsedDomain.subdomain || '.';
+                    const domain = parsedDomain.domain;
+                    if (domain) {
+                        if (!radar[domain]) {
+                            radar[domain] = {
+                                _name: namespaces[namespace].name,
+                            };
+                        }
+                        if (!radar[domain][subdomain]) {
+                            radar[domain][subdomain] = [];
+                        }
+                        radar[domain][subdomain].push({
+                            title: radarItem.title || data.name,
+                            docs: `https://docs.rsshub.app/routes/${categories[0]}`,
+                            source: radarItem.source.map((source) => {
+                                const sourceURL = new URL('https://' + source);
+                                return sourceURL.pathname + sourceURL.search + sourceURL.hash;
+                            }),
+                            target: radarItem.target ? `/${namespace}${radarItem.target}` : realPath,
+                        });
                     }
-                } else {
-                    namespaces[namespace].routes[content.route.path] = {
-                        ...content.route,
-                        location: module.split(/[/\\]/).slice(2).join('/'),
-                    };
                 }
             }
         }
     }
 
-    return namespaces;
-})();
+    fs.writeFileSync(path.join(__dirname, '../assets/build/radar-rules.json'), JSON.stringify(radar, null, 2));
+    fs.writeFileSync(path.join(__dirname, '../assets/build/radar-rules.js'), `(${toSource(radar)})`);
+    fs.writeFileSync(path.join(__dirname, '../assets/build/maintainers.json'), JSON.stringify(maintainers, null, 2));
+    fs.writeFileSync(path.join(__dirname, '../assets/build/routes.json'), JSON.stringify(namespaces, null, 2));
+};
 
-export { namespacesPromise, namespaces };
-
-const app = new Hono();
-for (const namespace in namespaces) {
-    const subApp = app.basePath(`/${namespace}`);
-    for (const path in namespaces[namespace].routes) {
-        const wrappedHandler: Handler = async (ctx) => {
-            if (!ctx.get('data')) {
-                if (typeof namespaces[namespace].routes[path].handler !== 'function') {
-                    const { route } = await import(`../routes/${namespace}/${namespaces[namespace].routes[path].location}`);
-                    namespaces[namespace].routes[path].handler = route.handler;
-                }
-                ctx.set('data', await namespaces[namespace].routes[path].handler(ctx));
-            }
-        };
-        subApp.get(path, wrappedHandler);
-    }
-}
-
-app.get('/', index);
-app.get('/robots.txt', robotstxt);
-app.use(
-    '/*',
-    serveStatic({
-        root: '../assets',
-        rewriteRequestPath: (path) => (path === '/favicon.ico' ? '/favicon.png' : path),
-    })
-);
-
-export default app;
+generateFiles().catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error('Error generating files:', error);
+    process.exit(1);
+});
