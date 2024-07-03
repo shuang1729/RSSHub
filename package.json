@@ -11,9 +11,10 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@hono/node-server": "^1.12.0",
     "directory-import": "^1.2.1",
     "express": "^4.17.1",
-    "hono": "^2.7.8",
+    "hono": "^2.0.0",
     "puppeteer": "^10.0.0",
     "tldts": "^5.0.0",
     "tosource": "^1.0.0"
