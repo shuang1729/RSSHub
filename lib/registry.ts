@@ -23,60 +23,64 @@ let namespaces: Record<
     }
 > = {};
 
-switch (process.env.NODE_ENV) {
-    case 'test':
-    case 'production':
-        // @ts-expect-error
-        namespaces = await import('../assets/build/routes.json');
-        break;
-    default:
-        modules = directoryImport({
-            targetDirectoryPath: path.join(__dirname, './routes'),
-            importPattern: /\.ts$/,
-        }) as typeof modules;
-}
+const loadNamespaces = async () => {
+    switch (process.env.NODE_ENV) {
+        case 'test':
+        case 'production':
+            // @ts-expect-error
+            namespaces = await import('../assets/build/routes.json');
+            break;
+        default:
+            modules = directoryImport({
+                targetDirectoryPath: path.join(__dirname, './routes'),
+                importPattern: /\.ts$/,
+            }) as typeof modules;
+    }
 
-if (Object.keys(modules).length) {
-    for (const module in modules) {
-        const content = modules[module] as
-            | {
-                  route: Route;
-              }
-            | {
-                  namespace: Namespace;
-              };
-        const namespace = module.split(/[/\\]/)[1];
-        if ('namespace' in content) {
-            namespaces[namespace] = Object.assign(
-                {
-                    routes: {},
-                },
-                namespaces[namespace],
-                content.namespace
-            );
-        } else if ('route' in content) {
-            if (!namespaces[namespace]) {
-                namespaces[namespace] = {
-                    name: namespace,
-                    routes: {},
-                };
-            }
-            if (Array.isArray(content.route.path)) {
-                for (const path of content.route.path) {
-                    namespaces[namespace].routes[path] = {
+    if (Object.keys(modules).length) {
+        for (const module in modules) {
+            const content = modules[module] as
+                | {
+                      route: Route;
+                  }
+                | {
+                      namespace: Namespace;
+                  };
+            const namespace = module.split(/[/\\]/)[1];
+            if ('namespace' in content) {
+                namespaces[namespace] = Object.assign(
+                    {
+                        routes: {},
+                    },
+                    namespaces[namespace],
+                    content.namespace
+                );
+            } else if ('route' in content) {
+                if (!namespaces[namespace]) {
+                    namespaces[namespace] = {
+                        name: namespace,
+                        routes: {},
+                    };
+                }
+                if (Array.isArray(content.route.path)) {
+                    for (const path of content.route.path) {
+                        namespaces[namespace].routes[path] = {
+                            ...content.route,
+                            location: module.split(/[/\\]/).slice(2).join('/'),
+                        };
+                    }
+                } else {
+                    namespaces[namespace].routes[content.route.path] = {
                         ...content.route,
                         location: module.split(/[/\\]/).slice(2).join('/'),
                     };
                 }
-            } else {
-                namespaces[namespace].routes[content.route.path] = {
-                    ...content.route,
-                    location: module.split(/[/\\]/).slice(2).join('/'),
-                };
             }
         }
     }
-}
+};
+
+await loadNamespaces();
 
 export { namespaces };
 
