@@ -1,12 +1,12 @@
-import type { Namespace, Route } from '@/types';
+import type { Namespace, Route } from '../types';
 import { directoryImport } from 'directory-import';
 import { Hono, type Handler } from 'hono';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveStatic } from '@hono/node-server/serve-static';
 
-import index from '@/routes/index';
-import robotstxt from '@/routes/robots.txt';
+import index from '../routes/index';
+import robotstxt from '../routes/robots.txt';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,16 +23,16 @@ let namespaces: Record<
     }
 > = {};
 
-async function loadNamespaces() {
+const namespacesPromise = (async () => {
     switch (process.env.NODE_ENV) {
         case 'test':
         case 'production':
             // @ts-expect-error
-            namespaces = await import('../assets/build/routes.json');
+            namespaces = await import('../../assets/build/routes.json');
             break;
         default:
             modules = directoryImport({
-                targetDirectoryPath: path.join(__dirname, './routes'),
+                targetDirectoryPath: path.join(__dirname, '../routes'),
                 importPattern: /\.ts$/,
             }) as typeof modules;
     }
@@ -78,11 +78,11 @@ async function loadNamespaces() {
             }
         }
     }
-}
 
-const namespacesPromise = loadNamespaces();
+    return namespaces;
+})();
 
-export { namespaces, namespacesPromise };
+export { namespacesPromise, namespaces };
 
 const app = new Hono();
 for (const namespace in namespaces) {
@@ -91,7 +91,7 @@ for (const namespace in namespaces) {
         const wrappedHandler: Handler = async (ctx) => {
             if (!ctx.get('data')) {
                 if (typeof namespaces[namespace].routes[path].handler !== 'function') {
-                    const { route } = await import(`./routes/${namespace}/${namespaces[namespace].routes[path].location}`);
+                    const { route } = await import(`../routes/${namespace}/${namespaces[namespace].routes[path].location}`);
                     namespaces[namespace].routes[path].handler = route.handler;
                 }
                 ctx.set('data', await namespaces[namespace].routes[path].handler(ctx));
@@ -106,7 +106,7 @@ app.get('/robots.txt', robotstxt);
 app.use(
     '/*',
     serveStatic({
-        root: './lib/assets',
+        root: '../assets',
         rewriteRequestPath: (path) => (path === '/favicon.ico' ? '/favicon.png' : path),
     })
 );
