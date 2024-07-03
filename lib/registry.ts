@@ -26,8 +26,10 @@ let namespaces: Record<
 switch (process.env.NODE_ENV) {
     case 'test':
     case 'production':
-        // @ts-expect-error
-        namespaces = await import('../assets/build/routes.json');
+        (async () => {
+            // @ts-expect-error
+            namespaces = await import('../assets/build/routes.json');
+        })();
         break;
     default:
         modules = directoryImport({
