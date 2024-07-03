@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { namespacesPromise } from '../../lib/registry';
 import { RadarItem } from '../../lib/types';
 import { parse } from 'tldts';
@@ -9,7 +10,8 @@ import { getCurrentPath } from '../../lib/utils/helpers';
 const __dirname = getCurrentPath(import.meta.url);
 
 const generateFiles = async () => {
-    const namespaces = await namespacesPromise;
+    await namespacesPromise;
+    const { namespaces } = await import('../../lib/registry');
     const maintainers: Record<string, string[]> = {};
     const radar: {
         [domain: string]: {
@@ -75,7 +77,7 @@ const generateFiles = async () => {
     fs.writeFileSync(path.join(__dirname, '../../assets/build/routes.json'), JSON.stringify(namespaces, null, 2));
 };
 
-generateFiles().catch(error => {
+generateFiles().catch((error) => {
     console.error('Error generating files:', error);
     process.exit(1);
 });
