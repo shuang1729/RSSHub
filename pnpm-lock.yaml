@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      directory-import:
+        specifier: ^1.2.1
+        version: 1.2.1
       express:
         specifier: ^4.17.1
         version: 4.19.2
@@ -182,6 +185,9 @@ packages:
   array-flatten@1.1.1:
     resolution: {integrity: sha512-PCVAQswWemu6UdxsDFFX/+gVeYqKAod3D3UVm91jHwynguOwAvYPhx8nNlM++NqRcK6CxxpUafjmhIdKiHibqg==}
 
+  async@3.2.5:
+    resolution: {integrity: sha512-baNZyqaaLhyLVKm/DlvdW051MSgO6b8eVfIezl9E5PqWxFgzLm/wQntEW4zOytVburDEr0JlALEpdOFwvErLsg==}
+
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
@@ -277,6 +283,10 @@ packages:
 
   devtools-protocol@0.0.901419:
     resolution: {integrity: sha512-4INMPwNm9XRpBukhNbF7OB6fNTTCaI8pzy/fXg0xQzAy5h3zL1P8xT3QazgKqBrb/hAYwIBizqDBZ7GtJE74QQ==}
+
+  directory-import@1.2.1:
+    resolution: {integrity: sha512-xjTcmGdYazUb/NZe23g84icgjB8I7d6YbwYCcFRR8Jzz8jd1s2kccIs2G+8ef0elvqn8rnz75S8QWf//T2e/sQ==}
+    engines: {node: '>=7.10.1'}
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
@@ -548,6 +558,10 @@ packages:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
     engines: {node: '>= 6'}
 
+  recursive-dir-reader@1.3.5:
+    resolution: {integrity: sha512-TRfQ/2vHmipsrY7xm74EXjYTO9tFic03e8ihEtfmcAC/Zj3gxY3Fan0/4GFET8YH7F21ExoRURYc/WY2Czg3gg==}
+    engines: {node: '>=7.10.1'}
+
   resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
 
@@ -759,6 +773,8 @@ snapshots:
 
   array-flatten@1.1.1: {}
 
+  async@3.2.5: {}
+
   balanced-match@1.0.2: {}
 
   base64-js@1.5.1: {}
@@ -850,6 +866,10 @@ snapshots:
   destroy@1.2.0: {}
 
   devtools-protocol@0.0.901419: {}
+
+  directory-import@1.2.1:
+    dependencies:
+      recursive-dir-reader: 1.3.5
 
   ee-first@1.1.1: {}
 
@@ -1172,6 +1192,10 @@ snapshots:
       inherits: 2.0.4
       string_decoder: 1.3.0
       util-deprecate: 1.0.2
+
+  recursive-dir-reader@1.3.5:
+    dependencies:
+      async: 3.2.5
 
   resolve-pkg-maps@1.0.0: {}
 
