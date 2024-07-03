@@ -13,6 +13,7 @@
   "dependencies": {
     "directory-import": "^1.2.1",
     "express": "^4.17.1",
+    "hono": "^2.7.8",
     "puppeteer": "^10.0.0",
     "tldts": "^5.0.0",
     "tosource": "^1.0.0"
